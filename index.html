@@ -2,9 +2,16 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Calculette Vocale — Appl'IA</title>
 <meta name="description" content="Calculette intelligente pilotée par la voix, en français, directement dans le navigateur.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f0c29">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Calculette">
 <style>
   :root{
     --bg1:#0f0c29;
@@ -262,6 +269,16 @@
     font-size:.72rem;
     margin-top:4px;
   }
+  .install-btn{
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#0b0a1e;
+    border:none;
+    border-radius:14px;
+    padding:14px;
+    font-weight:700;
+    font-size:.9rem;
+    cursor:pointer;
+  }
   .sr-only{
     position:absolute; width:1px; height:1px; padding:0; margin:-1px;
     overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
@@ -338,6 +355,8 @@
   <div class="card" id="warningCard" style="display:none;">
     <div class="badge-warning" id="warningText"></div>
   </div>
+
+  <button class="install-btn" id="installBtn" type="button" style="display:none;">Installer l'application</button>
 
   <div class="card">
     <details class="examples">
@@ -1022,6 +1041,36 @@
   clearHistoryBtn.addEventListener('click', () => {
     history = [];
     renderHistory();
+  });
+
+  /* ==================================================================
+     7) PROGRESSIVE WEB APP (installation + fonctionnement hors ligne)
+     ================================================================== */
+  if ('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => { /* pas grave hors ligne */ });
+    });
+  }
+
+  const installBtn = document.getElementById('installBtn');
+  let deferredInstallPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    installBtn.style.display = 'block';
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installBtn.style.display = 'none';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installBtn.style.display = 'none';
   });
 
   /* État initial */
