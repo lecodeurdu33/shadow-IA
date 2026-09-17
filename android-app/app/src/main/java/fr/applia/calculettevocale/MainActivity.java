@@ -1,5 +1,6 @@
 package fr.applia.calculettevocale;
 
+import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -10,20 +11,17 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AppCompatActivity;
-
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
+
+    private static final int SPEECH_REQUEST_CODE = 1001;
 
     private WebView webView;
     private TextToSpeech textToSpeech;
-    private ActivityResultLauncher<Intent> speechLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,11 +33,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        speechLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                this::onSpeechResult
-        );
-
         webView = new WebView(this);
         webView.getSettings().setJavaScriptEnabled(true);
         webView.setWebViewClient(new WebViewClient());
@@ -49,10 +42,13 @@ public class MainActivity extends AppCompatActivity {
         webView.loadUrl("file:///android_asset/index.html");
     }
 
-    private void onSpeechResult(androidx.activity.result.ActivityResult result) {
-        if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-            ArrayList<String> matches = result.getData()
-                    .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != SPEECH_REQUEST_CODE) return;
+
+        if (resultCode == RESULT_OK && data != null) {
+            ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             if (matches != null && !matches.isEmpty()) {
                 callJs("window.__androidVoiceResult", matches.get(0));
                 return;
@@ -85,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
                 intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "fr-FR");
                 intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Dites votre calcul");
                 try {
-                    speechLauncher.launch(intent);
+                    startActivityForResult(intent, SPEECH_REQUEST_CODE);
                 } catch (ActivityNotFoundException e) {
                     callJs("window.__androidVoiceError", "Reconnaissance vocale indisponible sur cet appareil.");
                 }
