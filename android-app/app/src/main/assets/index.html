@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Calculette Vocale — Appl'IA</title>
+<style>
+  :root{
+    --bg1:#0f0c29;
+    --bg2:#302b63;
+    --bg3:#24243e;
+    --card:#181832ee;
+    --accent:#7c5cff;
+    --accent2:#00d4ff;
+    --text:#f3f2ff;
+    --muted:#a5a0c9;
+    --danger:#ff5c7a;
+    --ok:#3ddc97;
+    --key-bg:#232047;
+    --key-bg-hover:#2f2a5e;
+    --op-bg:#3a2d6e;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2) 50%,var(--bg3));
+    background-attachment:fixed;
+    color:var(--text);
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    min-height:100vh;
+    padding:24px 16px 60px;
+  }
+  .app{
+    width:100%;
+    max-width:460px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  header{
+    text-align:center;
+  }
+  header h1{
+    font-size:1.5rem;
+    margin:0 0 4px;
+    font-weight:700;
+    letter-spacing:.3px;
+  }
+  header p{
+    margin:0;
+    color:var(--muted);
+    font-size:.85rem;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid #ffffff14;
+    border-radius:20px;
+    padding:18px;
+    box-shadow:0 20px 40px -20px #000000aa;
+    backdrop-filter:blur(8px);
+  }
+  .display{
+    background:#0b0a1eaa;
+    border-radius:14px;
+    padding:16px 18px;
+    min-height:96px;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+    gap:6px;
+    overflow-wrap:anywhere;
+    border:1px solid #ffffff10;
+  }
+  .display .expr{
+    color:var(--muted);
+    font-size:1rem;
+    min-height:1.2em;
+  }
+  .display .result{
+    font-size:2.1rem;
+    font-weight:700;
+    line-height:1.15;
+  }
+  .display .result.error{
+    color:var(--danger);
+    font-size:1.15rem;
+    font-weight:600;
+  }
+  .mic-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-top:14px;
+  }
+  .mic-btn{
+    flex:0 0 auto;
+    width:64px;
+    height:64px;
+    border-radius:50%;
+    border:none;
+    cursor:pointer;
+    background:radial-gradient(circle at 30% 30%, var(--accent2), var(--accent));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 8px 24px -6px #7c5cff88;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .mic-btn:hover{ transform:scale(1.05); }
+  .mic-btn:active{ transform:scale(.96); }
+  .mic-btn svg{ width:28px; height:28px; fill:#fff; }
+  .mic-btn.listening{
+    animation:pulse 1.4s infinite;
+    background:radial-gradient(circle at 30% 30%, #ff8fa8, var(--danger));
+  }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 #ff5c7a66; }
+    70%{ box-shadow:0 0 0 16px #ff5c7a00; }
+    100%{ box-shadow:0 0 0 0 #ff5c7a00; }
+  }
+  .mic-info{
+    flex:1;
+    min-width:0;
+  }
+  .mic-status{
+    font-size:.85rem;
+    font-weight:600;
+    color:var(--ok);
+  }
+  .mic-status.listening{ color:var(--danger); }
+  .mic-status.error{ color:var(--danger); }
+  .transcript{
+    font-size:.8rem;
+    color:var(--muted);
+    margin-top:2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .options-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    margin-top:12px;
+    font-size:.8rem;
+    color:var(--muted);
+  }
+  .options-row label{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    cursor:pointer;
+  }
+  .text-input-row{
+    display:flex;
+    gap:8px;
+    margin-top:14px;
+  }
+  .text-input-row input{
+    flex:1;
+    background:#0b0a1eaa;
+    border:1px solid #ffffff1a;
+    border-radius:10px;
+    padding:10px 12px;
+    color:var(--text);
+    font-size:.9rem;
+  }
+  .text-input-row input::placeholder{ color:#6f6a94; }
+  .text-input-row button{
+    background:var(--accent);
+    border:none;
+    color:#fff;
+    border-radius:10px;
+    padding:0 16px;
+    font-weight:600;
+    cursor:pointer;
+    font-size:.85rem;
+  }
+  .keypad{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:8px;
+    margin-top:16px;
+  }
+  .keypad button{
+    padding:14px 0;
+    border-radius:12px;
+    border:none;
+    font-size:1.05rem;
+    font-weight:600;
+    background:var(--key-bg);
+    color:var(--text);
+    cursor:pointer;
+    transition:background .12s ease, transform .08s ease;
+  }
+  .keypad button:hover{ background:var(--key-bg-hover); }
+  .keypad button:active{ transform:scale(.94); }
+  .keypad button.op{ background:var(--op-bg); color:var(--accent2); }
+  .keypad button.eq{ background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#0b0a1e; grid-column:span 2; }
+  .keypad button.clear{ color:var(--danger); }
+  .keypad button.wide{ grid-column:span 2; }
+  .history{
+    max-height:180px;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .history-item{
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    font-size:.82rem;
+    padding:8px 10px;
+    background:#0b0a1e77;
+    border-radius:8px;
+  }
+  .history-item .h-expr{ color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .history-item .h-res{ font-weight:700; flex:0 0 auto; }
+  .history-empty{ color:var(--muted); font-size:.82rem; text-align:center; padding:8px 0; }
+  .section-title{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+    font-size:.85rem;
+    font-weight:700;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.6px;
+  }
+  .section-title button{
+    background:none;
+    border:none;
+    color:var(--accent2);
+    font-size:.75rem;
+    cursor:pointer;
+    text-transform:none;
+    font-weight:600;
+  }
+  details.examples{ color:var(--muted); font-size:.82rem; }
+  details.examples summary{ cursor:pointer; color:var(--accent2); font-weight:600; margin-bottom:8px; }
+  details.examples ul{ margin:6px 0 0; padding-left:18px; line-height:1.6; }
+  .badge-warning{
+    background:#3a2d0e;
+    border:1px solid #ffb14e33;
+    color:#ffb14e;
+    font-size:.78rem;
+    border-radius:10px;
+    padding:10px 12px;
+    line-height:1.4;
+  }
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-size:.72rem;
+    margin-top:4px;
+  }
+  .sr-only{
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Calculette Vocale</h1>
+    <p>Parlez en français, elle calcule pour vous — par Appl'IA</p>
+  </header>
+
+  <div class="card">
+    <div class="display">
+      <div class="expr" id="exprLine">&nbsp;</div>
+      <div class="result" id="resultLine">0</div>
+    </div>
+
+    <div class="mic-row">
+      <button class="mic-btn" id="micBtn" type="button" aria-pressed="false" aria-label="Activer le micro">
+        <svg viewBox="0 0 24 24" id="micIcon">
+          <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z"/>
+          <path d="M19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.08A7 7 0 0 0 19 11z"/>
+        </svg>
+      </button>
+      <div class="mic-info">
+        <div class="mic-status" id="micStatus" aria-live="polite">Prêt à vous écouter</div>
+        <div class="transcript" id="transcriptLine">Appuyez sur le micro et dites un calcul</div>
+      </div>
+    </div>
+
+    <div class="options-row">
+      <label><input type="checkbox" id="speakToggle" checked> Lire le résultat à voix haute</label>
+    </div>
+
+    <div class="text-input-row">
+      <input type="text" id="textInput" placeholder="ou tapez : douze fois trois virgule cinq" autocomplete="off">
+      <button id="textSubmit" type="button">Calculer</button>
+    </div>
+
+    <div class="keypad" id="keypad">
+      <button class="clear" data-action="clear">C</button>
+      <button data-action="backspace">⌫</button>
+      <button data-key="(">(</button>
+      <button data-key=")">)</button>
+
+      <button data-key="7">7</button>
+      <button data-key="8">8</button>
+      <button data-key="9">9</button>
+      <button class="op" data-key="/">÷</button>
+
+      <button data-key="4">4</button>
+      <button data-key="5">5</button>
+      <button data-key="6">6</button>
+      <button class="op" data-key="*">×</button>
+
+      <button data-key="1">1</button>
+      <button data-key="2">2</button>
+      <button data-key="3">3</button>
+      <button class="op" data-key="-">−</button>
+
+      <button data-key="0">0</button>
+      <button data-key=".">,</button>
+      <button class="op" data-key="^">^</button>
+      <button class="op" data-key="+">+</button>
+
+      <button class="op wide" data-action="sqrt">√( )</button>
+      <button class="eq" data-action="equals">=</button>
+    </div>
+  </div>
+
+  <div class="card" id="warningCard" style="display:none;">
+    <div class="badge-warning" id="warningText"></div>
+  </div>
+
+  <div class="card">
+    <details class="examples">
+      <summary>Exemples de commandes vocales</summary>
+      <ul>
+        <li>« Combien fait douze plus sept »</li>
+        <li>« Vingt fois trois virgule cinq »</li>
+        <li>« Cent divisé par quatre »</li>
+        <li>« Racine carrée de quatre-vingt-un »</li>
+        <li>« Sept au carré »</li>
+        <li>« Vingt pourcent de cent cinquante »</li>
+        <li>« Deux à la puissance dix »</li>
+        <li>« Efface » ou « Répète »</li>
+      </ul>
+    </details>
+  </div>
+
+  <div class="card">
+    <div class="section-title">
+      Historique
+      <button id="clearHistory" type="button">Vider</button>
+    </div>
+    <div class="history" id="history">
+      <div class="history-empty">Aucun calcul pour l'instant</div>
+    </div>
+  </div>
+
+  <footer>
+    Calculette Vocale — Appl'IA
+  </footer>
+</div>
+
+<div class="sr-only" id="liveRegion" aria-live="assertive"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Éléments UI ---------- */
+  const exprLine = document.getElementById('exprLine');
+  const resultLine = document.getElementById('resultLine');
+  const micBtn = document.getElementById('micBtn');
+  const micStatus = document.getElementById('micStatus');
+  const transcriptLine = document.getElementById('transcriptLine');
+  const speakToggle = document.getElementById('speakToggle');
+  const textInput = document.getElementById('textInput');
+  const textSubmit = document.getElementById('textSubmit');
+  const keypad = document.getElementById('keypad');
+  const historyEl = document.getElementById('history');
+  const clearHistoryBtn = document.getElementById('clearHistory');
+  const warningCard = document.getElementById('warningCard');
+  const warningText = document.getElementById('warningText');
+  const liveRegion = document.getElementById('liveRegion');
+
+  let currentExpression = '';
+  let lastResultValue = null;
+  let history = [];
+
+  function announce(msg){
+    liveRegion.textContent = '';
+    setTimeout(()=>{ liveRegion.textContent = msg; }, 30);
+  }
+
+  function formatNumber(n){
+    if (!isFinite(n)) return String(n);
+    const rounded = Math.round(n * 1e8) / 1e8;
+    return rounded.toLocaleString('fr-FR', { maximumFractionDigits: 8 });
+  }
+
+  function setDisplay(expr, resultText, isError){
+    exprLine.textContent = expr && expr.trim() ? expr : ' ';
+    resultLine.textContent = resultText;
+    resultLine.classList.toggle('error', !!isError);
+  }
+
+  function pushHistory(expr, resultText){
+    history.unshift({ expr, resultText });
+    if (history.length > 30) history.pop();
+    renderHistory();
+  }
+
+  function renderHistory(){
+    if (!history.length){
+      historyEl.innerHTML = '<div class="history-empty">Aucun calcul pour l\'instant</div>';
+      return;
+    }
+    historyEl.innerHTML = history.map(h =>
+      `<div class="history-item"><span class="h-expr">${escapeHtml(h.expr)}</span><span class="h-res">${escapeHtml(h.resultText)}</span></div>`
+    ).join('');
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  /* ==================================================================
+     1) ÉVALUATEUR MATHÉMATIQUE SÉCURISÉ (pas d'eval)
+     Grammaire : expr := term (('+'|'-') term)*
+                 term := pow (('*'|'/') pow)*
+                 pow  := unary ('^' pow)?
+                 unary:= ('-'|'+')? primary
+                 primary := nombre | '(' expr ')' | 'sqrt' '(' expr ')'
+     ================================================================== */
+  function tokenizeMath(src){
+    const tokens = [];
+    let i = 0;
+    while (i < src.length){
+      const c = src[i];
+      if (/\s/.test(c)) { i++; continue; }
+      if (/[0-9.]/.test(c)){
+        let j = i, num = '';
+        while (j < src.length && /[0-9.]/.test(src[j])) { num += src[j]; j++; }
+        if (!/^\d+(\.\d+)?$/.test(num)) throw new Error('Nombre invalide dans l\'expression.');
+        tokens.push({ type:'num', value: parseFloat(num) });
+        i = j;
+        continue;
+      }
+      if (src.substr(i,4) === 'sqrt'){ tokens.push({ type:'sqrt' }); i += 4; continue; }
+      if ('+-*/^()'.includes(c)){ tokens.push({ type:c }); i++; continue; }
+      throw new Error('Caractère non reconnu : ' + c);
+    }
+    return tokens;
+  }
+
+  function evaluateExpression(src){
+    if (!src || !src.trim()) throw new Error('Aucune expression à calculer.');
+    const tokens = tokenizeMath(src);
+    if (!tokens.length) throw new Error('Aucune expression à calculer.');
+    let pos = 0;
+    const peek = () => tokens[pos];
+    const advance = () => tokens[pos++];
+
+    function parseExpr(){
+      let v = parseTerm();
+      while (peek() && (peek().type === '+' || peek().type === '-')){
+        const op = advance().type;
+        const rhs = parseTerm();
+        v = op === '+' ? v + rhs : v - rhs;
+      }
+      return v;
+    }
+    function parseTerm(){
+      let v = parsePow();
+      while (peek() && (peek().type === '*' || peek().type === '/')){
+        const op = advance().type;
+        const rhs = parsePow();
+        if (op === '/'){
+          if (rhs === 0) throw new Error('Division par zéro impossible.');
+          v = v / rhs;
+        } else v = v * rhs;
+      }
+      return v;
+    }
+    function parsePow(){
+      const v = parseUnary();
+      if (peek() && peek().type === '^'){
+        advance();
+        const rhs = parsePow();
+        return Math.pow(v, rhs);
+      }
+      return v;
+    }
+    function parseUnary(){
+      if (peek() && peek().type === '-'){ advance(); return -parseUnary(); }
+      if (peek() && peek().type === '+'){ advance(); return parseUnary(); }
+      return parsePrimary();
+    }
+    function parsePrimary(){
+      const t = peek();
+      if (!t) throw new Error('Expression incomplète.');
+      if (t.type === 'num'){ advance(); return t.value; }
+      if (t.type === 'sqrt'){
+        advance();
+        if (!peek() || peek().type !== '(') throw new Error('Parenthèse attendue après « racine carrée ».');
+        advance();
+        const v = parseExpr();
+        if (!peek() || peek().type !== ')') throw new Error('Parenthèse fermante manquante.');
+        advance();
+        if (v < 0) throw new Error('Racine carrée d\'un nombre négatif impossible.');
+        return Math.sqrt(v);
+      }
+      if (t.type === '('){
+        advance();
+        const v = parseExpr();
+        if (!peek() || peek().type !== ')') throw new Error('Parenthèse fermante manquante.');
+        advance();
+        return v;
+      }
+      throw new Error('Expression invalide.');
+    }
+
+    const result = parseExpr();
+    if (pos !== tokens.length) throw new Error('Expression invalide.');
+    if (!isFinite(result)) throw new Error('Le résultat dépasse les capacités de calcul.');
+    return result;
+  }
+
+  /* ==================================================================
+     2) CONVERSION FRANÇAIS PARLÉ -> EXPRESSION MATHÉMATIQUE
+     ================================================================== */
+  const UNIT_WORDS = {
+    'zero':0, 'zéro':0, 'un':1, 'une':1, 'deux':2, 'trois':3, 'quatre':4,
+    'cinq':5, 'six':6, 'sept':7, 'huit':8, 'neuf':9, 'dix':10, 'onze':11,
+    'douze':12, 'treize':13, 'quatorze':14, 'quinze':15, 'seize':16
+  };
+  const TENS_WORDS = {
+    'vingt':20, 'vingts':20, 'trente':30, 'quarante':40, 'cinquante':50, 'soixante':60
+  };
+  const SCALE_WORDS = {
+    'cent':100, 'cents':100, 'mille':1000,
+    'million':1000000, 'millions':1000000,
+    'milliard':1000000000, 'milliards':1000000000
+  };
+  const NUMBER_WORDS_SET = new Set([
+    ...Object.keys(UNIT_WORDS), ...Object.keys(TENS_WORDS), ...Object.keys(SCALE_WORDS), 'et'
+  ]);
+
+  function isNumberWord(tok){ return NUMBER_WORDS_SET.has(tok) || /^\d+$/.test(tok); }
+
+  // Consomme une séquence de mots-nombres français à partir de l'index `start`.
+  function parseNumberWordSequence(tokens, start){
+    let i = start;
+    let total = 0;   // total accumulé pour les groupes mille/million/milliard
+    let group = 0;   // groupe courant (0-999)
+    let matched = false;
+
+    while (i < tokens.length){
+      const tok = tokens[i];
+
+      if (tok === 'et'){
+        const nxt = tokens[i+1];
+        if (matched && nxt && isNumberWord(nxt) && nxt !== 'et'){ i++; continue; }
+        break;
+      }
+
+      if (tok in SCALE_WORDS){
+        const scale = SCALE_WORDS[tok];
+        if (scale === 100){
+          group = (group === 0 ? 1 : group) * 100;
+        } else {
+          const mult = (group === 0 ? 1 : group);
+          total += mult * scale;
+          group = 0;
+        }
+        matched = true; i++; continue;
+      }
+
+      if (tok in TENS_WORDS){
+        if ((tok === 'vingt' || tok === 'vingts') && group === 4){
+          group = 80; // "quatre-vingt" = 4 x 20
+        } else {
+          group += TENS_WORDS[tok];
+        }
+        matched = true; i++; continue;
+      }
+
+      if (tok in UNIT_WORDS){
+        group += UNIT_WORDS[tok];
+        matched = true; i++; continue;
+      }
+
+      break;
+    }
+
+    if (!matched) return null;
+    return { value: total + group, consumed: i - start };
+  }
+
+  function speechToExpression(rawText){
+    let text = ' ' + rawText.toLowerCase().normalize('NFC') + ' ';
+
+    // Normalisations diverses
+    text = text.replace(/[’]/g, "'");
+    text = text.replace(/[?!.;:]/g, ' ');
+    text = text.replace(/,/g, ' virgule ');
+    text = text.replace(/-/g, ' ');
+
+    // Expressions multi-mots -> marqueurs (ordre important : du plus long au plus court)
+    const phraseRules = [
+      [/racine\s+carr[ée]e?\s+de/g, ' RACINE '],
+      [/racine\s+de/g, ' RACINE '],
+      [/au\s+carr[ée]/g, ' CARRE '],
+      [/[àa]\s+la\s+puissance/g, ' PUISSANCE '],
+      [/\bpuissance\b/g, ' PUISSANCE '],
+      [/divis[ée]e?\s+par/g, ' DIVISE '],
+      [/multipli[ée]e?\s+par/g, ' FOIS '],
+      [/pour\s*cent\s+de/g, ' POURCENTDE '],
+      [/pourcent\s+de/g, ' POURCENTDE '],
+      [/pour\s*cent\b/g, ' POURCENT '],
+      [/pourcent\b/g, ' POURCENT '],
+      [/ouvre\s+parenth[eè]se/g, ' ( '],
+      [/parenth[eè]se\s+ouvrante/g, ' ( '],
+      [/ferme\s+parenth[eè]se/g, ' ) '],
+      [/parenth[eè]se\s+fermante/g, ' ) '],
+      [/\bplus\b/g, ' PLUS '],
+      [/\bmoins\b/g, ' MOINS '],
+      [/\bfois\b/g, ' FOIS '],
+      [/\bsur\b/g, ' DIVISE '],
+      [/\bvirgule\b/g, ' VIRGULE ']
+    ];
+    phraseRules.forEach(([re, rep]) => { text = text.replace(re, rep); });
+
+    // Mots de remplissage à ignorer
+    const fillerWords = new Set([
+      'combien','quel','quelle','quels','quelles','est','sont','le','la','les',
+      'resultat','résultat','de','calcule','calculer','calculatrice','stp',
+      "s'il","plait","plaît","te","vous","donne","moi","ça","ca","fait",
+      "font","egal","égal","egale","égale","du","avec","nous","donner","a","à","des"
+    ]);
+
+    const rawTokens = text.split(/\s+/).filter(Boolean);
+
+    // Construction des "atomes"
+    const atoms = [];
+    let i = 0;
+    let singleDigitMode = false;
+    while (i < rawTokens.length){
+      let tok = rawTokens[i];
+
+      if (singleDigitMode){
+        let d = null;
+        if (/^\d$/.test(tok)) d = parseInt(tok, 10);
+        else if (tok in UNIT_WORDS && UNIT_WORDS[tok] <= 9) d = UNIT_WORDS[tok];
+        if (d !== null){ atoms.push({ t:'digit', v:d }); i++; continue; }
+        singleDigitMode = false;
+      }
+
+      if (fillerWords.has(tok)){ i++; continue; }
+
+      switch (tok){
+        case '(': atoms.push({ t:'(' }); i++; continue;
+        case ')': atoms.push({ t:')' }); i++; continue;
+        case 'PLUS': atoms.push({ t:'op', v:'+' }); i++; continue;
+        case 'MOINS': atoms.push({ t:'op', v:'-' }); i++; continue;
+        case 'FOIS': atoms.push({ t:'op', v:'*' }); i++; continue;
+        case 'DIVISE': atoms.push({ t:'op', v:'/' }); i++; continue;
+        case 'PUISSANCE': atoms.push({ t:'op', v:'^' }); i++; continue;
+        case 'CARRE': atoms.push({ t:'square' }); i++; continue;
+        case 'RACINE': atoms.push({ t:'sqrt' }); i++; continue;
+        case 'POURCENT': atoms.push({ t:'percent' }); i++; continue;
+        case 'POURCENTDE': atoms.push({ t:'percentof' }); i++; continue;
+        case 'VIRGULE': atoms.push({ t:'decimal' }); singleDigitMode = true; i++; continue;
+      }
+
+      if (/^\d+(\.\d+)?$/.test(tok)){
+        atoms.push({ t:'num', v: parseFloat(tok) });
+        i++; continue;
+      }
+
+      const parsed = parseNumberWordSequence(rawTokens, i);
+      if (parsed){
+        atoms.push({ t:'num', v: parsed.value });
+        i += parsed.consumed;
+        continue;
+      }
+
+      i++; // mot inconnu, on l'ignore
+    }
+
+    return atomsToExpression(atoms);
+  }
+
+  function atomToSrc(a){ return a.t === 'expr' ? a.s : String(a.v); }
+
+  function atomsToExpression(atoms){
+    // Passe 1 : fusion des décimales  [num][decimal][digit...]
+    let step1 = [];
+    for (let idx = 0; idx < atoms.length; idx++){
+      const a = atoms[idx];
+      if (a.t === 'num' && atoms[idx+1] && atoms[idx+1].t === 'decimal'){
+        let frac = '';
+        let j = idx + 2;
+        while (atoms[j] && atoms[j].t === 'digit'){ frac += atoms[j].v; j++; }
+        step1.push({ t:'num', v: parseFloat(a.v + '.' + (frac || '0')) });
+        idx = j - 1;
+        continue;
+      }
+      if (a.t === 'digit'){ step1.push({ t:'num', v:a.v }); continue; }
+      step1.push(a);
+    }
+
+    // Passe 2 : carré postfixe  [num][square] -> num^2
+    let step2 = [];
+    for (let idx = 0; idx < step1.length; idx++){
+      const a = step1[idx];
+      if (step1[idx+1] && step1[idx+1].t === 'square' && (a.t === 'num' || a.t === 'expr')){
+        step2.push({ t:'expr', s: `(${atomToSrc(a)})^2` });
+        idx++; continue;
+      }
+      step2.push(a);
+    }
+
+    // Passe 3 : pourcentage postfixe  [num][percent] -> (num/100)
+    let step3 = [];
+    for (let idx = 0; idx < step2.length; idx++){
+      const a = step2[idx];
+      if (step2[idx+1] && step2[idx+1].t === 'percent' && (a.t === 'num' || a.t === 'expr')){
+        step3.push({ t:'expr', s: `(${atomToSrc(a)}/100)` });
+        idx++; continue;
+      }
+      step3.push(a);
+    }
+
+    // Passe 4 : "X pourcent de Y" -> ((X/100)*Y)
+    let step4 = [];
+    for (let idx = 0; idx < step3.length; idx++){
+      const a = step3[idx];
+      const b = step3[idx+1];
+      const c = step3[idx+2];
+      if (b && b.t === 'percentof' && c && (a.t === 'num' || a.t === 'expr') && (c.t === 'num' || c.t === 'expr')){
+        step4.push({ t:'expr', s: `((${atomToSrc(a)}/100)*${atomToSrc(c)})` });
+        idx += 2; continue;
+      }
+      step4.push(a);
+    }
+
+    // Passe 5 : racine carrée préfixe  [sqrt][num|expr|'('...')']
+    let step5 = [];
+    for (let idx = 0; idx < step4.length; idx++){
+      const a = step4[idx];
+      if (a.t === 'sqrt'){
+        const nxt = step4[idx+1];
+        if (nxt && (nxt.t === 'num' || nxt.t === 'expr')){
+          step5.push({ t:'expr', s: `sqrt(${atomToSrc(nxt)})` });
+          idx++; continue;
+        }
+        if (nxt && nxt.t === '('){
+          let depth = 1, j = idx + 2, inner = [];
+          while (j < step4.length && depth > 0){
+            if (step4[j].t === '(') depth++;
+            else if (step4[j].t === ')'){ depth--; if (depth === 0) break; }
+            if (depth > 0) inner.push(step4[j]);
+            j++;
+          }
+          step5.push({ t:'expr', s: `sqrt(${atomsToInlineString(inner)})` });
+          idx = j; continue;
+        }
+      }
+      step5.push(a);
+    }
+
+    return atomsToInlineString(step5);
+  }
+
+  function atomsToInlineString(atoms){
+    return atoms.map(a => {
+      if (a.t === 'num') return String(a.v);
+      if (a.t === 'expr') return a.s;
+      if (a.t === 'op') return a.v;
+      if (a.t === '(') return '(';
+      if (a.t === ')') return ')';
+      return '';
+    }).join(' ').replace(/\s+/g, ' ').trim();
+  }
+
+  /* ==================================================================
+     3) TRAITEMENT D'UNE COMMANDE (voix ou texte)
+     ================================================================== */
+  function handleUtterance(text){
+    const clean = text.trim();
+    if (!clean) return;
+    transcriptLine.textContent = '« ' + clean + ' »';
+
+    const lower = clean.toLowerCase();
+
+    if (/\b(efface|effacer|recommence|reinitialise|réinitialise|remise\s*[àa]\s*zero)\b/.test(lower)){
+      clearAll();
+      speak('Calculette réinitialisée.');
+      return;
+    }
+    if (/\b(repete|répète|redis|repete le resultat|répète le résultat)\b/.test(lower)){
+      if (lastResultValue !== null){
+        speak('Le résultat était ' + formatNumber(lastResultValue) + '.');
+      } else {
+        speak("Je n'ai encore rien calculé.");
+      }
+      return;
+    }
+
+    let expr;
+    try {
+      expr = speechToExpression(clean);
+    } catch (e){
+      showError("Je n'ai pas compris ce calcul.");
+      return;
+    }
+
+    if (!expr){
+      showError("Je n'ai pas reconnu de calcul dans votre phrase.");
+      return;
+    }
+
+    compute(expr);
+  }
+
+  function compute(expr){
+    currentExpression = expr;
+    try {
+      const value = evaluateExpression(expr);
+      lastResultValue = value;
+      const formatted = formatNumber(value);
+      setDisplay(prettyExpr(expr), formatted, false);
+      pushHistory(prettyExpr(expr), formatted);
+      if (speakToggle.checked){
+        speak('Le résultat est ' + formatted + '.');
+      }
+      setStatusReady();
+    } catch (e){
+      showError(e.message || 'Calcul impossible.');
+    }
+  }
+
+  function prettyExpr(expr){
+    return expr.replace(/\*/g, '×').replace(/\//g, '÷');
+  }
+
+  function setStatusReady(){
+    micStatus.textContent = 'Prêt à vous écouter';
+    micStatus.classList.remove('error');
+    micStatus.classList.remove('listening');
+    micBtn.classList.remove('listening');
+  }
+
+  function showError(msg){
+    setDisplay(currentExpression, msg, true);
+    micStatus.textContent = 'Erreur';
+    micStatus.classList.add('error');
+    micStatus.classList.remove('listening');
+    micBtn.classList.remove('listening');
+    if (speakToggle.checked) speak(msg);
+    announce(msg);
+  }
+
+  function clearAll(){
+    currentExpression = '';
+    lastResultValue = null;
+    setDisplay('', '0', false);
+    transcriptLine.textContent = 'Appuyez sur le micro et dites un calcul';
+    setStatusReady();
+  }
+
+  /* ==================================================================
+     4) SYNTHÈSE VOCALE (retour audio en français)
+     Priorité au pont natif Android (TextToSpeech), sinon Web Speech API.
+     ================================================================== */
+  function speak(text){
+    if (window.AndroidVoice && window.AndroidVoice.speak){
+      try { window.AndroidVoice.speak(text); return; } catch (e) { /* repli ci-dessous */ }
+    }
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'fr-FR';
+      utter.rate = 1;
+      window.speechSynthesis.speak(utter);
+    } catch (e) { /* silencieux si indisponible */ }
+  }
+
+  /* ==================================================================
+     5) RECONNAISSANCE VOCALE
+     Priorité au pont natif Android (reconnaissance vocale système),
+     sinon l'API Web Speech du navigateur.
+     ================================================================== */
+  window.__androidVoiceResult = function(text){
+    setStatusReady();
+    handleUtterance(text);
+  };
+  window.__androidVoiceError = function(msg){
+    showError(msg);
+  };
+
+  const hasAndroidBridge = !!(window.AndroidVoice && window.AndroidVoice.isAvailable && window.AndroidVoice.isAvailable());
+  const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null;
+  let isListening = false;
+  let userStopped = false;
+
+  if (hasAndroidBridge){
+    micBtn.addEventListener('click', () => {
+      micBtn.classList.add('listening');
+      micStatus.textContent = 'Écoute en cours…';
+      micStatus.classList.remove('error');
+      micStatus.classList.add('listening');
+      transcriptLine.textContent = 'Je vous écoute…';
+      window.AndroidVoice.startListening();
+    });
+  } else if (SpeechRecognitionImpl){
+    recognition = new SpeechRecognitionImpl();
+    recognition.lang = 'fr-FR';
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      isListening = true;
+      micBtn.classList.add('listening');
+      micBtn.setAttribute('aria-pressed', 'true');
+      micStatus.textContent = 'Écoute en cours…';
+      micStatus.classList.remove('error');
+      micStatus.classList.add('listening');
+      transcriptLine.textContent = 'Je vous écoute…';
+    };
+
+    recognition.onresult = (event) => {
+      let interim = '';
+      let final = '';
+      for (let i = event.resultIndex; i < event.results.length; i++){
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) final += transcript;
+        else interim += transcript;
+      }
+      if (interim) transcriptLine.textContent = interim + '…';
+      if (final) handleUtterance(final);
+    };
+
+    recognition.onerror = (event) => {
+      let msg = "Erreur de reconnaissance vocale.";
+      if (event.error === 'no-speech') msg = "Je n'ai rien entendu, réessayez.";
+      else if (event.error === 'not-allowed' || event.error === 'service-not-allowed') msg = "Accès au micro refusé.";
+      else if (event.error === 'network') msg = "Problème réseau pour la reconnaissance vocale.";
+      micStatus.textContent = msg;
+      micStatus.classList.add('error');
+      micStatus.classList.remove('listening');
+      announce(msg);
+    };
+
+    recognition.onend = () => {
+      isListening = false;
+      micBtn.classList.remove('listening');
+      micBtn.setAttribute('aria-pressed', 'false');
+      micStatus.classList.remove('listening');
+      if (!micStatus.classList.contains('error')){
+        micStatus.textContent = 'Prêt à vous écouter';
+      }
+    };
+
+    micBtn.addEventListener('click', () => {
+      if (isListening){
+        userStopped = true;
+        recognition.stop();
+      } else {
+        userStopped = false;
+        try { recognition.start(); } catch (e) { /* déjà démarré */ }
+      }
+    });
+  } else {
+    micBtn.disabled = true;
+    micBtn.style.opacity = '0.4';
+    micBtn.style.cursor = 'not-allowed';
+    micStatus.textContent = 'Micro non disponible';
+    warningCard.style.display = 'block';
+    warningText.textContent = "Aucun service de reconnaissance vocale n'est disponible sur cet appareil. Vous pouvez toujours utiliser le clavier ou le champ texte ci-dessous.";
+  }
+
+  /* ==================================================================
+     6) CHAMP TEXTE + CLAVIER NUMÉRIQUE
+     ================================================================== */
+  textSubmit.addEventListener('click', () => {
+    const val = textInput.value;
+    if (val.trim()){ handleUtterance(val); textInput.value = ''; }
+  });
+  textInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') textSubmit.click();
+  });
+
+  let keypadExpr = '';
+  function updateKeypadDisplay(){
+    setDisplay(prettyExpr(keypadExpr), keypadExpr ? '…' : '0', false);
+  }
+
+  keypad.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const key = btn.getAttribute('data-key');
+    const action = btn.getAttribute('data-action');
+
+    if (key !== null){
+      keypadExpr += key;
+      currentExpression = keypadExpr;
+      updateKeypadDisplay();
+      return;
+    }
+
+    if (action === 'clear'){
+      keypadExpr = '';
+      clearAll();
+      return;
+    }
+    if (action === 'backspace'){
+      keypadExpr = keypadExpr.slice(0, -1);
+      currentExpression = keypadExpr;
+      updateKeypadDisplay();
+      return;
+    }
+    if (action === 'sqrt'){
+      keypadExpr += 'sqrt()';
+      currentExpression = keypadExpr;
+      updateKeypadDisplay();
+      return;
+    }
+    if (action === 'equals'){
+      if (!keypadExpr.trim()) return;
+      compute(keypadExpr);
+      keypadExpr = String(lastResultValue !== null ? lastResultValue : '');
+      return;
+    }
+  });
+
+  clearHistoryBtn.addEventListener('click', () => {
+    history = [];
+    renderHistory();
+  });
+
+  /* État initial */
+  clearAll();
+})();
+</script>
+</body>
+</html>
